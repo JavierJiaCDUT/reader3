@@ -1,0 +1,284 @@
+/**
+ * Library page template
+ * Displays all available books in a grid layout
+ */
+
+export function libraryTemplate({ books }) {
+  const bookCards = books.length > 0
+    ? books.map(book => `
+      <div class="book-card">
+        <div class="book-title">${escapeHtml(book.title)}</div>
+        <div class="book-meta">
+          <strong>${escapeHtml(book.author || 'Unknown Author')}</strong><br>
+          ${book.chapters} sections
+        </div>
+        <a href="/read/${book.id}/0" class="btn">Start Reading →</a>
+      </div>
+    `).join('')
+    : `
+      <div class="empty-state">
+        <p>No processed books found.</p>
+        <p>Upload books to your R2 bucket to get started.</p>
+      </div>
+    `;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Library</title>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            /* Colors - Light mode */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-page: #f4f4f9;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #999999;
+            --border-color: #e9ecef;
+            --accent-color: #3498db;
+            --accent-hover: #2980b9;
+            --card-bg: #ffffff;
+            --shadow-sm: 0 2px 5px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.3s ease;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-page: #121212;
+            --text-primary: #e8e8e8;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --border-color: #404040;
+            --accent-color: #5dade2;
+            --accent-hover: #3498db;
+            --card-bg: #242424;
+            --shadow-sm: 0 2px 5px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.7);
+        }
+
+        [data-theme="sepia"] {
+            --bg-primary: #f4ecd8;
+            --bg-secondary: #e8dcc4;
+            --bg-page: #f4ecd8;
+            --text-primary: #3a2f1f;
+            --text-secondary: #6b5d4f;
+            --text-muted: #8b7d6f;
+            --border-color: #d4c4a8;
+            --accent-color: #8b7355;
+            --accent-hover: #6d5842;
+            --card-bg: #faf6ed;
+            --shadow-sm: 0 2px 5px rgba(58,47,31,0.1);
+            --shadow-md: 0 4px 12px rgba(58,47,31,0.15);
+            --shadow-lg: 0 8px 24px rgba(58,47,31,0.2);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            transition: background-color var(--transition-base), color var(--transition-base);
+        }
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        h1 {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 2em;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+            font-family: var(--font-sans);
+            font-weight: 500;
+        }
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .theme-toggle:active { transform: translateY(0); }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            margin-top: 30px;
+        }
+        .empty-state p {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            margin: 0 0 10px 0;
+        }
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 30px;
+        }
+        .book-card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-base), box-shadow var(--transition-base);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        .book-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color), var(--accent-hover));
+            transform: scaleX(0);
+            transition: transform var(--transition-base);
+        }
+        .book-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .book-card:hover::before { transform: scaleX(1); }
+        .book-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
+        }
+        .book-meta {
+            color: var(--text-secondary);
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+        .book-meta strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .btn {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            text-align: center;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        .btn:active { transform: translateY(0); }
+        @media (max-width: 767px) {
+            body { padding: 15px; }
+            .header { margin-bottom: 20px; }
+            h1 { font-size: 1.6em; }
+            .book-grid { grid-template-columns: 1fr; gap: 20px; }
+            .theme-toggle { padding: 8px 16px; font-size: 0.85em; }
+        }
+        @media (min-width: 768px) and (max-width: 991px) {
+            .book-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        }
+        @media (min-width: 1400px) {
+            .book-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📚 My Library</h1>
+        <button class="theme-toggle" id="theme-toggle" title="Change theme">
+            <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
+        </button>
+    </div>
+    <div class="container">
+        <div class="book-grid">
+            ${bookCards}
+        </div>
+    </div>
+    <script>
+        const themes = ['light', 'dark', 'sepia'];
+        const themeNames = {
+            'light': { icon: '☀️', text: 'Light' },
+            'dark': { icon: '🌙', text: 'Dark' },
+            'sepia': { icon: '📖', text: 'Sepia' }
+        };
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeButton(savedTheme);
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const current = localStorage.getItem('theme') || 'light';
+            const currentIndex = themes.indexOf(current);
+            const next = themes[(currentIndex + 1) % themes.length];
+            localStorage.setItem('theme', next);
+            document.documentElement.setAttribute('data-theme', next);
+            updateThemeButton(next);
+        });
+        function updateThemeButton(theme) {
+            document.getElementById('theme-icon').textContent = themeNames[theme].icon;
+            document.getElementById('theme-text').textContent = themeNames[theme].text;
+        }
+    </script>
+</body>
+</html>`;
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}

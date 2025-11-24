@@ -1,0 +1,21 @@
+{
+  "name": "reader3",
+  "version": "3.0.0",
+  "description": "A lightweight EPUB reader deployed on Cloudflare",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "convert": "python3 scripts/convert-to-json.py"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

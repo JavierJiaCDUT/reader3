@@ -22,6 +22,42 @@ uv run server.py
 
 And visit [localhost:8123](http://localhost:8123/) to see your current Library. You can easily add more books, or delete them from your library by deleting the folder. It's not supposed to be complicated or complex.
 
+## ☁️ Deploy to Cloudflare (New!)
+
+You can now deploy reader3 completely to Cloudflare for **free** with global CDN:
+
+### Quick Start
+
+```bash
+# Install dependencies
+npm install
+npm install -g wrangler
+
+# Login to Cloudflare
+wrangler login
+
+# Create R2 bucket for book storage
+wrangler r2 bucket create reader3-books
+
+# Convert and upload your books
+python3 scripts/convert-to-json.py dracula_data
+./scripts/upload-to-r2.sh dracula_data
+
+# Deploy!
+wrangler deploy
+```
+
+Your site will be live at `https://reader3.your-subdomain.workers.dev` 🎉
+
+**Features:**
+- ✅ Free (1M requests/month)
+- ✅ Global CDN
+- ✅ Auto HTTPS
+- ✅ Responsive design with dark mode
+- ✅ Mobile-friendly with hamburger menu
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed instructions or [DEPLOY.md](DEPLOY.md) for complete documentation.
+
 ## License
 
 MIT

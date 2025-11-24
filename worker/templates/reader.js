@@ -1,0 +1,147 @@
+/**
+ * Reader page template
+ * Displays book content with navigation and TOC
+ */
+
+export function readerTemplate({ book, bookId, currentChapter, chapterIndex, prevIdx, nextIdx }) {
+  const tocHtml = renderTocRecursive(book.toc, currentChapter.href);
+  const spineMapJson = generateSpineMap(book.spine);
+
+  const prevButton = prevIdx !== null
+    ? `<a href="/read/${bookId}/${prevIdx}" class="nav-btn">← Previous</a>`
+    : `<span class="nav-btn disabled">← Previous</span>`;
+
+  const nextButton = nextIdx !== null
+    ? `<a href="/read/${bookId}/${nextIdx}" class="nav-btn">Next →</a>`
+    : `<span class="nav-btn disabled">Next →</span>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(book.metadata.title)}</title>
+    ${getReaderCSS()}
+</head>
+<body>
+    <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    <button class="theme-toggle" id="theme-toggle" title="Change theme">
+        <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
+    </button>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="nav-home">← Back to Library</a>
+            <div class="nav-header">${escapeHtml(book.metadata.title)}</div>
+            <div class="reading-controls">
+                <div class="control-group">
+                    <button class="control-btn" id="font-decrease" title="Decrease font size">A-</button>
+                    <button class="control-btn" id="font-reset" title="Reset font size">A</button>
+                    <button class="control-btn" id="font-increase" title="Increase font size">A+</button>
+                </div>
+            </div>
+        </div>
+        ${tocHtml}
+    </div>
+    <div id="main">
+        <div class="content-container">
+            <div class="book-content">
+                ${currentChapter.content}
+            </div>
+            <div class="chapter-nav">
+                ${prevButton}
+                <span class="chapter-info">
+                    Section ${chapterIndex + 1} of ${book.spine.length}
+                </span>
+                ${nextButton}
+            </div>
+        </div>
+    </div>
+    ${getReaderJS(spineMapJson, bookId)}
+</body>
+</html>`;
+}
+
+function renderTocRecursive(tocItems, currentHref, level = 0) {
+  if (!tocItems || tocItems.length === 0) return '';
+
+  const items = tocItems.map(item => {
+    const isActive = item.file_href === currentHref ? ' active' : '';
+    const children = item.children && item.children.length > 0
+      ? renderTocRecursive(item.children, currentHref, level + 1)
+      : '';
+
+    return `
+      <li class="toc-item">
+        <a href="#" onclick="findAndGo('${escapeHtml(item.file_href)}'); return false;"
+           class="toc-link${isActive}">
+          ${escapeHtml(item.title)}
+        </a>
+        ${children}
+      </li>
+    `;
+  }).join('');
+
+  return `<ul class="toc-list">${items}</ul>`;
+}
+
+function generateSpineMap(spine) {
+  const map = {};
+  spine.forEach(ch => {
+    map[ch.href] = ch.order;
+  });
+  return JSON.stringify(map);
+}
+
+function getReaderCSS() {
+  return `<style>
+    :root{--bg-primary:#fff;--bg-secondary:#f8f9fa;--bg-page:#fff;--text-primary:#212529;--text-secondary:#6c757d;--text-muted:#999;--border-color:#e9ecef;--accent-color:#3498db;--accent-hover:#2980b9;--sidebar-bg:#f8f9fa;--reading-bg:#fff;--shadow-sm:0 2px 5px rgba(0,0,0,.1);--shadow-md:0 4px 12px rgba(0,0,0,.15);--shadow-lg:0 8px 24px rgba(0,0,0,.2);--radius-sm:4px;--radius-md:8px;--radius-lg:12px;--transition-fast:.15s ease;--transition-base:.3s ease;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--font-serif:"Literata","Georgia","Noto Serif SC","SimSun",serif}[data-theme=dark]{--bg-primary:#1a1a1a;--bg-secondary:#2d2d2d;--bg-page:#1a1a1a;--text-primary:#e8e8e8;--text-secondary:#b0b0b0;--text-muted:#808080;--border-color:#404040;--accent-color:#5dade2;--accent-hover:#3498db;--sidebar-bg:#2d2d2d;--reading-bg:#1e1e1e;--shadow-sm:0 2px 5px rgba(0,0,0,.3);--shadow-md:0 4px 12px rgba(0,0,0,.5);--shadow-lg:0 8px 24px rgba(0,0,0,.7)}[data-theme=sepia]{--bg-primary:#f4ecd8;--bg-secondary:#e8dcc4;--bg-page:#f4ecd8;--text-primary:#3a2f1f;--text-secondary:#6b5d4f;--text-muted:#8b7d6f;--border-color:#d4c4a8;--accent-color:#8b7355;--accent-hover:#6d5842;--sidebar-bg:#e8dcc4;--reading-bg:#f4ecd8;--shadow-sm:0 2px 5px rgba(58,47,31,.1);--shadow-md:0 4px 12px rgba(58,47,31,.15);--shadow-lg:0 8px 24px rgba(58,47,31,.2)}*{box-sizing:border-box}body{margin:0;padding:0;display:flex;height:100vh;overflow:hidden;font-family:var(--font-serif);background:var(--bg-page);color:var(--text-primary);transition:background-color var(--transition-base),color var(--transition-base)}.hamburger{display:none;position:fixed;top:15px;left:15px;z-index:1003;background:var(--accent-color);border:none;border-radius:var(--radius-md);width:48px;height:48px;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer;box-shadow:var(--shadow-md);transition:all var(--transition-fast);padding:0}.hamburger span{display:block;width:24px;height:3px;background:#fff;border-radius:2px;transition:all var(--transition-base)}.hamburger:hover{transform:scale(1.05)}.hamburger:active{transform:scale(.95)}.hamburger.active span:nth-child(1){transform:translateY(8px) rotate(45deg)}.hamburger.active span:nth-child(2){opacity:0}.hamburger.active span:nth-child(3){transform:translateY(-8px) rotate(-45deg)}.sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1001;opacity:0;transition:opacity var(--transition-base)}.sidebar-overlay.active{display:block;opacity:1}#sidebar{width:300px;background:var(--sidebar-bg);border-right:1px solid var(--border-color);overflow-y:auto;padding:20px;flex-shrink:0;transition:background-color var(--transition-base)}.sidebar-header{margin-bottom:20px}.nav-home{display:inline-flex;align-items:center;margin-bottom:20px;color:var(--accent-color);text-decoration:none;font-family:var(--font-sans);font-size:.9em;font-weight:500;transition:all var(--transition-fast)}.nav-home:hover{color:var(--accent-hover);transform:translateX(-2px)}.nav-header{font-family:var(--font-sans);font-weight:600;color:var(--text-primary);margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid var(--border-color);font-size:1.1em;line-height:1.3}.reading-controls{display:flex;gap:10px;margin-bottom:20px;padding:15px;background:var(--bg-primary);border-radius:var(--radius-md);border:1px solid var(--border-color)}.control-group{display:flex;gap:5px;flex:1}.control-btn{flex:1;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:8px 12px;cursor:pointer;font-size:.85em;color:var(--text-primary);transition:all var(--transition-fast);font-family:var(--font-sans);font-weight:500}.control-btn:hover{background:var(--accent-color);color:#fff;border-color:var(--accent-color)}.control-btn:active{transform:scale(.95)}ul.toc-list{list-style:none;padding-left:0;margin:0}ul.toc-list ul{padding-left:20px}li.toc-item{margin-bottom:6px}a.toc-link{text-decoration:none;color:var(--text-secondary);font-size:.92em;display:block;padding:6px 10px;line-height:1.4;border-radius:var(--radius-sm);transition:all var(--transition-fast);font-family:var(--font-sans)}a.toc-link:hover{color:var(--text-primary);background:var(--bg-primary)}a.toc-link.active{color:var(--accent-color);font-weight:600;background:var(--bg-primary)}#main{flex-grow:1;overflow-y:auto;position:relative;scroll-behavior:smooth;background:var(--reading-bg);transition:background-color var(--transition-base)}.theme-toggle{position:fixed;top:15px;right:15px;z-index:1000;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:10px 16px;cursor:pointer;font-size:.85em;color:var(--text-primary);transition:all var(--transition-fast);box-shadow:var(--shadow-sm);font-family:var(--font-sans);font-weight:500}.theme-toggle:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);background:var(--accent-color);color:#fff;border-color:var(--accent-color)}.content-container{max-width:700px;margin:0 auto;padding:80px 40px 60px;line-height:1.8;font-size:18px;color:var(--text-primary)}.book-content img{max-width:100%;height:auto;display:block;margin:20px auto;border-radius:var(--radius-sm)}.book-content h1,.book-content h2,.book-content h3,.book-content h4{font-family:var(--font-sans);margin-top:1.5em;margin-bottom:.7em;color:var(--text-primary);font-weight:600;letter-spacing:-.02em;line-height:1.3}.book-content h1{font-size:2em}.book-content h2{font-size:1.6em}.book-content h3{font-size:1.3em}.book-content p{margin-bottom:1.5em;text-align:justify;color:var(--text-primary)}.book-content a{color:var(--accent-color);text-decoration:none;border-bottom:1px solid transparent;transition:border-color var(--transition-fast)}.book-content a:hover{border-bottom-color:var(--accent-color)}.chapter-nav{display:flex;justify-content:space-between;align-items:center;margin-top:60px;padding-top:20px;border-top:2px solid var(--border-color);font-family:var(--font-sans);gap:15px}.nav-btn{text-decoration:none;color:var(--accent-color);font-weight:600;padding:12px 24px;border:2px solid var(--accent-color);border-radius:var(--radius-md);transition:all var(--transition-fast);font-size:.95em}.nav-btn:hover{background:var(--accent-color);color:#fff;transform:translateY(-2px);box-shadow:var(--shadow-sm)}.nav-btn:active{transform:translateY(0)}.nav-btn.disabled{opacity:.4;pointer-events:none;border-color:var(--text-muted);color:var(--text-muted)}.chapter-info{color:var(--text-muted);font-size:.9em;text-align:center}@media (max-width:991px){.hamburger{display:flex}#sidebar{position:fixed;left:-320px;top:0;bottom:0;width:300px;z-index:1002;transition:left var(--transition-base);box-shadow:none}#sidebar.active{left:0;box-shadow:4px 0 20px rgba(0,0,0,.3)}.content-container{padding:80px 30px 60px}.theme-toggle{top:15px;right:15px}}@media (max-width:767px){.content-container{padding:80px 20px 60px;font-size:16px}.hamburger{width:44px;height:44px}.theme-toggle{padding:8px 12px;font-size:.8em}.chapter-nav{flex-wrap:wrap}.chapter-info{order:-1;width:100%;margin-bottom:15px}.nav-btn{padding:10px 20px;font-size:.9em}.reading-controls{flex-direction:column}.control-group{width:100%}}@media (min-width:1200px){.content-container{max-width:800px}}@media (min-width:1600px){.content-container{max-width:900px}}::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:var(--bg-secondary)}::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:5px}::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+  </style>`;
+}
+
+function getReaderJS(spineMapJson, bookId) {
+  return `<script>
+    const themes=['light','dark','sepia'];
+    const themeNames={light:{icon:'☀️',text:'Light'},dark:{icon:'🌙',text:'Dark'},sepia:{icon:'📖',text:'Sepia'}};
+    const savedTheme=localStorage.getItem('theme')||'light';
+    document.documentElement.setAttribute('data-theme',savedTheme);
+    updateThemeButton(savedTheme);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const current=localStorage.getItem('theme')||'light';const currentIndex=themes.indexOf(current);const next=themes[(currentIndex+1)%themes.length];localStorage.setItem('theme',next);document.documentElement.setAttribute('data-theme',next);updateThemeButton(next)});
+    function updateThemeButton(theme){document.getElementById('theme-icon').textContent=themeNames[theme].icon;document.getElementById('theme-text').textContent=themeNames[theme].text}
+    const fontSizes=[14,16,18,20,22,24];
+    let currentSizeIndex=parseInt(localStorage.getItem('fontSize'))||2;
+    function updateFontSize(index){const size=fontSizes[index];document.querySelector('.content-container').style.fontSize=size+'px';localStorage.setItem('fontSize',index);currentSizeIndex=index}
+    updateFontSize(currentSizeIndex);
+    document.getElementById('font-increase').addEventListener('click',()=>{if(currentSizeIndex<fontSizes.length-1){updateFontSize(currentSizeIndex+1)}});
+    document.getElementById('font-decrease').addEventListener('click',()=>{if(currentSizeIndex>0){updateFontSize(currentSizeIndex-1)}});
+    document.getElementById('font-reset').addEventListener('click',()=>{updateFontSize(2)});
+    const hamburger=document.getElementById('hamburger');
+    const sidebar=document.getElementById('sidebar');
+    const overlay=document.getElementById('sidebar-overlay');
+    function openSidebar(){sidebar.classList.add('active');overlay.classList.add('active');hamburger.classList.add('active');document.body.style.overflow='hidden'}
+    function closeSidebar(){sidebar.classList.remove('active');overlay.classList.remove('active');hamburger.classList.remove('active');document.body.style.overflow=''}
+    hamburger.addEventListener('click',()=>{if(sidebar.classList.contains('active')){closeSidebar()}else{openSidebar()}});
+    overlay.addEventListener('click',closeSidebar);
+    if(window.innerWidth<992){document.querySelectorAll('.toc-link').forEach(link=>{link.addEventListener('click',()=>{setTimeout(closeSidebar,300)})})}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sidebar.classList.contains('active')){closeSidebar()}if(e.key==='t'||e.key==='T'){document.getElementById('theme-toggle').click()}if((e.key==='m'||e.key==='M')&&window.innerWidth<992){if(sidebar.classList.contains('active')){closeSidebar()}else{openSidebar()}}});
+    const spineMap=${spineMapJson};
+    function findAndGo(filename){const cleanFile=filename.split('#')[0];const idx=spineMap[cleanFile];if(idx!==undefined){window.location.href="/read/${bookId}/"+idx}else{console.log("Could not find index for",filename)}}
+    window.addEventListener('load',()=>{document.getElementById('main').scrollTop=0});
+  </script>`;
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
