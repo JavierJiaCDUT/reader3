@@ -236,9 +236,12 @@ export function libraryTemplate({ books }) {
 <body>
     <div class="header">
         <h1>📚 My Library</h1>
-        <button class="theme-toggle" id="theme-toggle" title="Change theme">
-            <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
-        </button>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <a href="/admin" class="btn" style="background: var(--text-secondary); font-size: 0.9em; padding: 8px 16px;">⚙️ 管理</a>
+            <button class="theme-toggle" id="theme-toggle" title="Change theme">
+                <span id="theme-icon">☀️</span> <span id="theme-text">Light</span>
+            </button>
+        </div>
     </div>
     <div class="container">
         <div class="book-grid">

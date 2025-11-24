@@ -17,6 +17,7 @@ Cloudflare R2 (书籍文件存储)
 - ✅ 全球 CDN 加速
 - ✅ 自动 HTTPS
 - ✅ 零运维成本
+- ✅ Web 管理界面 - 方便管理书籍
 
 ---
 
@@ -380,5 +381,75 @@ app.use('*', async (c, next) => {
 - 🌍 全球快速访问
 - 💰 完全免费
 - 🚀 无限扩展
+
+---
+
+## 🎛️ Web 管理界面
+
+部署完成后，您可以通过 Web 界面管理书籍，无需使用命令行！
+
+### 访问管理界面
+
+访问 `https://your-worker-url.workers.dev/admin`
+
+### 功能特性
+
+**📚 书籍列表**
+- 查看所有已上传的书籍
+- 显示书名、作者、章节数
+- 支持深色/浅色主题
+
+**🗑️ 删除书籍**
+- 点击"删除"按钮即可删除书籍
+- 会删除 R2 中的所有相关文件（book.json 和所有图片）
+- 删除前会有确认提示
+
+**📖 上传新书（说明）**
+
+目前 Web 界面展示了上传区域，但由于 Cloudflare Workers 无法运行 Python EPUB 处理代码，您仍需要在本地进行以下步骤：
+
+```bash
+# 1. 下载 EPUB 文件到本地
+# 2. 处理 EPUB
+python3 reader3.py your-book.epub
+
+# 3. 转换为 JSON
+python3 scripts/convert-to-json.py your-book_data
+
+# 4. 上传到 R2
+./scripts/upload-to-r2.sh your-book_data
+```
+
+上传完成后，刷新管理界面即可看到新书。
+
+### 未来改进方向
+
+如果您想实现完全的 Web 上传功能，可以考虑：
+
+1. **使用 JavaScript EPUB 解析库**
+   - 例如 [epub.js](https://github.com/futurepress/epub.js/)
+   - 在 Worker 中直接处理 EPUB 文件
+
+2. **使用 Cloudflare Durable Objects**
+   - 实现长时间运行的 EPUB 处理任务
+   - 支持进度追踪
+
+3. **使用外部处理服务**
+   - 将 EPUB 处理部署为独立的 API
+   - Worker 调用该 API 处理文件
+
+### 管理界面快捷键
+
+- **切换主题：** 点击主题按钮（🌙/☀️）
+
+### 安全提示
+
+- 管理界面默认没有密码保护
+- 如果您希望保护管理页面，可以：
+  1. 在 `worker/index.js` 中添加基本认证
+  2. 使用 Cloudflare Access 添加访问控制
+  3. 将管理路由限制为特定 IP 地址
+
+---
 
 享受阅读吧！📚

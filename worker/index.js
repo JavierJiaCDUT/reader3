@@ -11,6 +11,7 @@ import { Hono } from 'hono';
 import { cache } from 'hono/cache';
 import { libraryTemplate } from './templates/library.js';
 import { readerTemplate } from './templates/reader.js';
+import { adminTemplate } from './templates/admin.js';
 
 const app = new Hono();
 
@@ -123,6 +124,86 @@ app.get('/read/:bookId/images/:imageName', async (c) => {
 });
 
 /**
+ * Admin page - Book management
+ */
+app.get('/admin', async (c) => {
+  try {
+    const env = c.env;
+
+    // Load full book data for admin view
+    const books = await listBooksDetailed(env.R2_BUCKET);
+
+    const html = adminTemplate({ books, uploadEnabled: true });
+
+    return c.html(html);
+  } catch (error) {
+    console.error('Error loading admin:', error);
+    return c.text('Error loading admin page', 500);
+  }
+});
+
+/**
+ * Upload book (ZIP file containing book.json and images/)
+ * Since Cloudflare Workers can't run Python EPUB processing,
+ * we accept pre-processed ZIP files created by convert-to-json.py
+ */
+app.post('/admin/upload', async (c) => {
+  try {
+    const env = c.env;
+    const formData = await c.req.formData();
+    const file = formData.get('file');
+
+    if (!file) {
+      return c.text('No file uploaded', 400);
+    }
+
+    // For now, we'll accept EPUB files but explain they need pre-processing
+    // In a production setup, you'd either:
+    // 1. Pre-process EPUBs locally and upload the resulting JSON
+    // 2. Use a separate processing service
+    // 3. Integrate a JavaScript EPUB parser (like epub.js)
+
+    if (file.name.endsWith('.epub')) {
+      return c.text('EPUB files need to be pre-processed. Please use: python3 reader3.py <file.epub> && python3 scripts/convert-to-json.py <book_data> && ./scripts/upload-to-r2.sh <book_data>', 400);
+    }
+
+    return c.text('Upload functionality requires pre-processed book data. See documentation for details.', 400);
+  } catch (error) {
+    console.error('Error uploading book:', error);
+    return c.text('Error uploading book: ' + error.message, 500);
+  }
+});
+
+/**
+ * Delete a book from R2
+ */
+app.delete('/admin/delete/:bookId', async (c) => {
+  try {
+    const bookId = c.req.param('bookId');
+    const env = c.env;
+
+    // List all objects for this book
+    const list = await env.R2_BUCKET.list({ prefix: bookId + '/' });
+
+    if (list.objects.length === 0) {
+      return c.text('Book not found', 404);
+    }
+
+    // Delete all objects
+    const deletePromises = list.objects.map(obj =>
+      env.R2_BUCKET.delete(obj.key)
+    );
+
+    await Promise.all(deletePromises);
+
+    return c.json({ success: true, deleted: list.objects.length });
+  } catch (error) {
+    console.error('Error deleting book:', error);
+    return c.text('Error deleting book: ' + error.message, 500);
+  }
+});
+
+/**
  * Health check endpoint
  */
 app.get('/health', (c) => {
@@ -130,7 +211,7 @@ app.get('/health', (c) => {
 });
 
 /**
- * List all available books from R2
+ * List all available books from R2 (simplified view)
  */
 async function listBooks(bucket) {
   const books = [];
@@ -152,6 +233,38 @@ async function listBooks(bucket) {
           title: book.metadata.title,
           author: book.metadata.authors.join(', '),
           chapters: book.spine.length
+        });
+      } catch (error) {
+        console.error(`Error loading book ${bookId}:`, error);
+      }
+    }
+  }
+
+  return books;
+}
+
+/**
+ * List all available books from R2 (detailed view for admin)
+ */
+async function listBooksDetailed(bucket) {
+  const books = [];
+
+  // List all book.json files in R2
+  const list = await bucket.list();
+
+  for (const object of list.objects) {
+    // Look for book.json files
+    if (object.key.endsWith('/book.json')) {
+      const bookId = object.key.replace('/book.json', '');
+
+      try {
+        const bookData = await bucket.get(object.key);
+        const book = await bookData.json();
+
+        books.push({
+          id: bookId,
+          metadata: book.metadata,
+          spine: book.spine
         });
       } catch (error) {
         console.error(`Error loading book ${bookId}:`, error);

@@ -55,8 +55,9 @@ Your site will be live at `https://reader3.your-subdomain.workers.dev` 🎉
 - ✅ Auto HTTPS
 - ✅ Responsive design with dark mode
 - ✅ Mobile-friendly with hamburger menu
+- ✅ Web admin interface for managing books
 
-See [QUICKSTART.md](QUICKSTART.md) for detailed instructions or [DEPLOY.md](DEPLOY.md) for complete documentation.
+Access the admin interface at `/admin` to view and delete books. See [QUICKSTART.md](QUICKSTART.md) for detailed instructions or [DEPLOY.md](DEPLOY.md) for complete documentation.
 
 ## License
 
