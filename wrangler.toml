@@ -2,6 +2,7 @@ name = "reader3"
 main = "worker/index.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "b0997cfb242e5472a1c98ff43adf87b3"
 
 # Workers configuration
 workers_dev = true
